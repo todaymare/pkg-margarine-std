@@ -2,8 +2,8 @@ mod iter;
 mod duration;
 mod io;
 mod string;
-mod list;
-mod hashmap;
+// mod list;
+// mod hashmap;
 mod rand;
 
 mod ffi {
@@ -172,10 +172,10 @@ impl Eq for () {
     }
 }
 
-impl<T: Eq> Eq for [T] {
-    fn eq(self, oth: Self): bool {
-        self.iter().zip(oth.iter())
-            .all(|a: (T, T)| a.0 == a.1)
-    }
-}
+// impl<T: Eq> Eq for [T] {
+//     fn eq(self, oth: Self): bool {
+//         self.iter().zip(oth.iter())
+//             .all(|a: (T, T)| a.0 == a.1)
+//     }
+// }
 

@@ -11,7 +11,7 @@ mod ffi {
     fn str_nth(s: str, n: int): str
     fn str_lines_iter_next(s: Lines): Option<str>
     fn str_cmp(a: str, b: str): bool
-    fn str_hash(s: str, hasher: hashmap::Hasher)
+    // fn str_hash(s: str, hasher: hashmap::Hasher)
     }
 }
 
@@ -144,8 +144,8 @@ impl Eq for str {
 }
 
 
-impl hashmap::Hash for str {
-    fn hash(self, hasher: hashmap::Hasher) {
-        ffi::str_hash(self, hasher)
-    }
-}
+// impl hashmap::Hash for str {
+//     fn hash(self, hasher: hashmap::Hasher) {
+//         ffi::str_hash(self, hasher)
+//     }
+// }
