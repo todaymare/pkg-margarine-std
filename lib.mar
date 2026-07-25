@@ -9,7 +9,7 @@ mod rand;
 mod ffi {
     extern {
         fn print_raw(val: any)
-        fn "margarineAbort" abort(): !
+        fn "margarinePanic" panic(msg: str): !
 
         fn int_to_str(value: int): str
         fn float_to_str(value: float): str
@@ -35,8 +35,7 @@ fn type_id_of<T>(val: T): int {
 
 
 fn panic(msg: str) : ! {
-    println(msg);
-    ffi::abort()
+    ffi::panic(msg)
 }
 
 fn assert(value: bool, msg: str) {
@@ -178,4 +177,3 @@ impl Eq for () {
 //             .all(|a: (T, T)| a.0 == a.1)
 //     }
 // }
-
