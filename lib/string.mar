@@ -4,14 +4,12 @@ mod ffi {
     extern {
     fn str_lines_iter(s: str): Lines
     fn str_split_at(s: str, idx: int): (str, str)
-    fn str_parse(s: str, ty: int): Option<any>
     fn str_len(s: str): int
     fn str_split_once(s: str, delimiter: str): Option<(str, str)>
     fn str_slice(s: str, min: int, max: int): str
     fn str_nth(s: str, n: int): str
     fn str_lines_iter_next(s: Lines): Option<str>
     fn str_cmp(a: str, b: str): bool
-    // fn str_hash(s: str, hasher: hashmap::Hasher)
     }
 }
 
@@ -28,14 +26,6 @@ impl str {
 
     fn split_at(self, idx: int): (str, str) {
         ffi::str_split_at(self, idx)
-    }
-    
-
-    fn parse<T>(self): Option<T> {
-        ffi::str_parse(self, $type_id::<T>())
-            .map(|n| {
-                $downcast_any(n)!
-            })
     }
 
 
@@ -142,10 +132,3 @@ impl Eq for str {
         ffi::str_cmp(self, oth)
     }
 }
-
-
-// impl hashmap::Hash for str {
-//     fn hash(self, hasher: hashmap::Hasher) {
-//         ffi::str_hash(self, hasher)
-//     }
-// }

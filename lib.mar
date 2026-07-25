@@ -8,7 +8,7 @@ mod rand;
 
 mod ffi {
     extern {
-        fn print_raw(val: any)
+        fn print_raw(val: Any)
         fn "margarinePanic" panic(msg: str): !
 
         fn int_to_str(value: int): str
@@ -18,8 +18,60 @@ mod ffi {
 
 use iter::Iter;
 
+
+struct AnyInner {
+    destroy_fn: fn(Ptr<()>),
+    buffer: Ptr<()>,
+}
+
+
+struct Any {
+    inner: Rc<AnyInner>,
+    ty: int,
+}
+
+
+impl Destroy for AnyInner {
+    fn destroy(self) {
+        (self.destroy_fn)(self.buffer);
+    }
+}
+
+
+impl Any {
+    fn new<T>(val: T): Any {
+        var buf = $ptr_alloc::<T>(1);
+        $ptr_write_uninit(buf, val);
+        var casted = $ptr_cast::<T, ()>(buf);
+        var inner_val = AnyInner {
+            destroy_fn: |ptr| {
+                var typed = $ptr_cast::<(), T>(ptr);
+                $ptr_drop(typed);
+                $ptr_free(typed, 1);
+            },
+            buffer: casted,
+        };
+        Any {
+            inner: $rc(inner_val),
+            ty: $type_id::<T>(),
+        }
+    }
+
+
+    fn downcast<T>(self): Option<T> {
+        if self.ty == $type_id::<T>() {
+            var inner = $rc_get(self.inner);
+            var ptr = $ptr_cast::<(), T>(inner.buffer);
+            some($ptr_read(ptr))
+        } else {
+            none()
+        }
+    }
+}
+
+
 fn print<T>(val: T) {
-    ffi::print_raw($any(val));
+    ffi::print_raw(Any::new(val));
 }
 
 
