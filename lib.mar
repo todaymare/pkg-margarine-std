@@ -6,6 +6,10 @@ mod string;
 // mod hashmap;
 mod rand;
 
+@cfg(env("MARGARINE_COMPILATION_TARGET", "arm64-apple-darwin"))
+@hash("dc7547270e1415cae1fcc43a31e3f49c792987e42eac2f050bc3b61b495543a7")
+extern "https://cdn.daymare.net/margarine/0.1.0/arm64-apple-darwin/libmargarine_rt.a";
+
 mod ffi {
     extern {
         fn print_raw(val: Any)
