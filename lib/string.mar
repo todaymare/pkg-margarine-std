@@ -1,36 +1,35 @@
-use iter::Iter;
 
 mod ffi {
     extern {
-    fn str_lines_iter(s: str): Lines
-    fn str_split_at(s: str, idx: int): (str, str)
-    fn str_len(s: str): int
-    fn str_split_once(s: str, delimiter: str): Option<(str, str)>
-    fn str_slice(s: str, min: int, max: int): str
-    fn str_nth(s: str, n: int): str
-    fn str_lines_iter_next(s: Lines): Option<str>
-    fn str_cmp(a: str, b: str): bool
+        fn str_split_once(s: str, del: str): Option<(str, str)>
+        fn str_len(s: str): int
+        fn str_contains(s: str, v: str): bool
+        fn str_slice(s: str, min: int, max: int): str
+        fn str_concat(a: str, b: str): str
+        fn str_byte_at(s: str, idx: int): Option<int>
     }
 }
 
-type Lines;
+
+struct Lines {
+    data: str,
+
+}
 
 impl str {
     fn lines(self): Iter<str> {
-        var lines = ffi::str_lines_iter(self);
+        var lines = Rc::new(Lines {
+            data: self,
+        });
+
         Iter {
-            next: || lines.__next__(),
+            next: || {
+                var s = lines.get();
+                var result = s.__next__()?;
+                lines.set(s);
+                some(result)
+            }
         }
-    }
-
-
-    fn split_at(self, idx: int): (str, str) {
-        ffi::str_split_at(self, idx)
-    }
-
-
-    fn is_empty(self): bool {
-        self.len() == 0
     }
 
 
@@ -39,96 +38,198 @@ impl str {
     }
 
 
-    fn split(self, delimiter: str): Iter<str> {
-        var state = SplitState {
-            base: some(self),
-            del : delimiter,
-        };
-
-
-        Iter {
-            next: || {
-                match state.base {
-                    some: base => {
-                        var split = state.base?.split_once(delimiter);
-                        if split.is_some() {
-                            var split = split!;
-                            state.base = some(split.1);
-                            some(split.0)
-                        } else {
-                            state.base = none();
-                            some(base)
-                        }
-                    },
-
-                    none => none(),
-                }
-
-            }
-        }
-    }
-
-
-    fn split_once(self, delimiter: str): Option<(str, str)> {
-        ffi::str_split_once(self, delimiter)
-    }
-
-
     fn slice(self, range: Range): str {
         ffi::str_slice(self, range.min, range.max)
     }
 
 
-    fn nth(self, n: int): str {
-        ffi::str_nth(self, n)
+    fn byte_at(self, idx: int): Option<int> {
+        ffi::str_byte_at(self, idx)
     }
 
 
-    fn chars(self): Iter<str> {
-        var chars = Chars { s: self };
+    fn concat(self, b: str): str {
+        ffi::str_concat(self, b)
+    }
+
+
+    fn split(self, del: str): Iter<str> {
+        var split = Rc::new(Split {
+            s: self,
+            del,
+        });
+
         Iter {
             next: || {
-                if chars.s.is_empty() {
-                    return none()
-                }
-
-                if chars.s.len() == 1 {
-                    var s = chars.s;
-                    chars.s = "";
-                    return some(s);
-                }
-
-                var ch, rest = chars.s.split_at(1);
-                chars.s = rest;
-                some(ch)
+                var s = split.get();
+                var result = s.__next__()?;
+                split.set(s);
+                some(result)
             }
         }
+    }
+
+
+    fn split_once(self, del: str): Option<(str, str)> {
+        var idx = self.find(del)?;
+        var a = self.slice(0..idx);
+        var b = self.slice(idx+del.len()..self.len());
+        some((a, b))
+    }
+
+
+    fn contains(self, value: str): bool {
+        self.find(value).is_some()
+    }
+
+
+    fn replace(self, pat: str, value: str): str {
+        var out = "";
+        var rest = self;
+
+        loop {
+            var before, after =
+                match rest.split_once(pat) {
+                    some: pair => pair,
+                    none => return out.concat(rest),
+                };
+
+            out = out.concat(before).concat(value);
+            rest = after;
+        }
+
+        panic("unreachable")
+    }
+
+
+    fn replace_once(self, pat: str, value: str): str {
+        var a, b = 
+        match self.split_once(pat) {
+            some: idx => idx,
+            none => return self,
+        };
+
+        a.concat(value).concat(b)
+    }
+
+
+    fn find(self, pattern: str): Option<int> {
+        if self.len() < pattern.len() { return none() }
+
+        for i in 0..self.len() {
+            var matches = true;
+            if i + pattern.len() > self.len() {
+                return none();
+            }
+
+            for j in i..i + pattern.len() {
+                var str_byte = self.byte_at(j)!;
+                var pat_byte = pattern.byte_at(j - i)!;
+
+                if str_byte != pat_byte {
+                    matches = false;
+                    break
+                }
+            }
+
+
+            if matches {
+                return some(i);
+            }
+
+        }
+
+        none()
+    }
+}
+
+
+fn format(s: str, values: [str]): str {
+    for value in values.iter() {
+        s = s.replace_once("{}", value);
+    }
+
+    if s.find("{}").is_some() {
+        panic("unresolved brackets in format function");
+    }
+
+    s
+}
+
+
+impl Eq for str {
+    fn eq(self, oth: str): bool {
+        if self.len() != oth.len() { return false }
+
+        for i in 0..self.len() {
+            if self.byte_at(i)! != oth.byte_at(i)! {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
+
+struct Split {
+    s: str,
+    del: str,
+}
+
+
+impl Split {
+    fn __next__(&self): Option<str> {
+        var a, b = self.s.split_once(self.del)?;
+        self.s = b;
+        some(a)
     }
 }
 
 
 impl Lines {
-    fn __next__(self): Option<str> {
-        ffi::str_lines_iter_next(self)
+    fn __next__(&self): Option<str> {
+        if self.data.len() == 0 { return none() }
+
+        var curr, next = 
+        match self.data.split_once("\n") {
+            some: value => value,
+            none => {
+                var value = self.data;
+                self.data = "";
+                return some(value)
+            }
+        };
+
+        self.data = next;
+        some(curr)
     }
 }
 
 
+@test
+fn test_replace() {
+    assert(
+        "hello, {}".replace("{}", "world") == "hello, world", 
+        "replace failed to replace template string"
+    );
 
-struct SplitState {
-    base: Option<str>,
-    del : str,
-
+    assert(
+        "hello, {}, {}".replace("{}", "world") == "hello, world, world",
+        "replace did not replace all elements"
+    );
 }
 
 
-struct Chars {
-    s: str,
-}
+@test
+fn test_replace_once() {
+    assert(
+        "hello, {}".replace_once("{}", "world") == "hello, world", 
+        "replace once failed to replace template string"
+    );
 
-
-impl Eq for str {
-    fn eq(self, oth: Self): bool {
-        ffi::str_cmp(self, oth)
-    }
+    assert(
+        "hello, {}, {}".replace_once("{}", "world") == "hello, world, {}",
+        "replace once replaced multiple elements"
+    );
 }

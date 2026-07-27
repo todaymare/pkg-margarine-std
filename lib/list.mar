@@ -1,41 +1,52 @@
 mod ffi {
     extern {
-        fn list_push<T>(list: [T], value: any, elem_size: int)
-        fn list_pop<T>(list: [T], elem_size: int): Option<T>
         fn list_len<T>(list: [T]): int
-        fn list_clear<T>(list: [T])
     }
 }
 
 
 impl<T> [T] {
-    fn push(self, value: T) {
-        ffi::list_push(self, $any(value), $sizeof::<T>())
-    }
-
-
-    fn pop(self): Option<T> {
-        ffi::list_pop(self, $sizeof::<T>())
-    }
-
-
     fn len(self): int { ffi::list_len(self) }
 
+//    fn iter(self): std::iter::Iter<T> {
+//        var index = Box::new(0);
+//        iter::Iter {
+//            next: || {
+//                if index.value < self.len() {
+//                    index.value += 1;
+//                    some(self[index.value-1])
+//                } else {
+//                    none()
+//                }
+//            }
+//        }
+//    }
 
-    fn clear(self) { ffi::list_clear(self) }
 
-
-    fn iter(self): std::iter::Iter<T> {
-        var index = Box::new(0);
-        iter::Iter {
-            next: || {
-                if index.value < self.len() {
-                    index.value += 1;
-                    some(self[index.value-1])
-                } else {
-                    none()
-                }
-            }
+    fn iter(self): ListIterator<T> {
+        ListIterator {
+            idx: 0,
+            list: self,
         }
     }
 }
+
+
+
+struct ListIterator<T> {
+    idx: int,
+    list: [T]
+}
+
+
+impl<T> ListIterator<T> {
+    fn __next__(&self): Option<T> {
+        if self.idx < self.list.len() {
+            self.idx += 1;
+            some(self.list[self.idx - 1])
+        } else {
+            none()
+        }
+    }
+}
+

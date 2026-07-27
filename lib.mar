@@ -2,13 +2,15 @@ mod iter;
 mod duration;
 mod io;
 mod string;
-// mod list;
+mod list;
 // mod hashmap;
 mod rand;
 mod prelude;
+mod env;
+mod rc;
 
 @cfg(env("MARGARINE_COMPILATION_TARGET", "arm64-apple-darwin"))
-@hash("dc7547270e1415cae1fcc43a31e3f49c792987e42eac2f050bc3b61b495543a7")
+//@hash("bdb926d2a979dbee3cb0780805c3a8df3bf14ec24bca0b6ce06a95ecbcf75419")
 extern "https://cdn.daymare.net/margarine/0.1.0/arm64-apple-darwin/libmargarine_rt.a";
 
 mod ffi {
@@ -101,7 +103,7 @@ fn assert(value: bool, msg: str) {
 
 
 impl Range {
-    fn __next__(self): Option<int> {
+    fn __next__(&self): Option<int> {
         if self.min < self.max {
             self.min += 1;
             some(self.min-1)
@@ -228,9 +230,3 @@ impl Eq for () {
     }
 }
 
-// impl<T: Eq> Eq for [T] {
-//     fn eq(self, oth: Self): bool {
-//         self.iter().zip(oth.iter())
-//             .all(|a: (T, T)| a.0 == a.1)
-//     }
-// }

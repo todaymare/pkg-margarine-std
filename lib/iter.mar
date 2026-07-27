@@ -1,48 +1,38 @@
+
 struct Iter<T> {
-    next: fn(): Option<T>
+    next: fn(): Option<T>,
 }
 
 
 impl<T> Iter<T> {
-    fn __next__(self): Option<T> {
-        var next_fn = self.next;
-        next_fn()
+    fn __next__(&self): Option<T> {
+        (self.next)()
     }
 
 
     fn enumerate(self): Iter<(int, T)> {
-        var counter = Box::new(0);
+        var counter = Rc::new(0);
         Iter {
             next: || {
-                var result = self.next;
-                var result = result();
+                var result = (self.next)()?;
+                var num = counter.get();
+                counter.set(num+1);
 
-                match result {
-                    some: result => {
-                        counter.value += 1;
-                        some((counter.value - 1, result))
-                    },
-
-                    none => none(),
-                }
+                some((num, result))
             }
         }
-    }
-
-
-    fn for_each(self, f: fn(T)) {
-        for _ in self.map(f) {}
     }
 
 
     fn map<A>(self, f: fn(T): A): Iter<A> {
         Iter {
             next: || {
-                var result = self.__next__()?;
+                var result = (self.next)()?;
                 some(f(result))
             }
         }
     }
+
 
 
     fn filter(self, cond: fn(T): bool): Iter<T> {
@@ -58,6 +48,11 @@ impl<T> Iter<T> {
                 none()
             }
         }
+    }
+
+
+    fn for_each(self, f: fn(T)) {
+        for _ in self.map(f) {}
     }
 
 
@@ -77,15 +72,15 @@ impl<T> Iter<T> {
 
 
     fn nth(self, n: int): Option<T> {
-        self.skip(n).__next__()
+        (self.skip(n).next)()
     }
 
 
     fn zip<A>(self, oth: Iter<A>): Iter<(T, A)> {
         Iter {
             next: || {
-                var a = self.__next__()?;
-                var b = oth.__next__()?;
+                var a = (self.next)()?;
+                var b = (oth.next)()?;
                 some((a, b))
             }
         }
@@ -108,14 +103,17 @@ impl<T> Iter<T> {
         
         false
     }
+
+
+
 }
 
 
 impl Iter<int> {
     fn sum(self): int {
-        var sum = (0,);
-        self.for_each(|n| { sum.0 += n });
-        sum.0
+        var sum = 0;
+        for n in self { sum += n }
+        sum
     }
 }
 
