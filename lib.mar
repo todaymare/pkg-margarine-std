@@ -5,6 +5,7 @@ mod string;
 // mod list;
 // mod hashmap;
 mod rand;
+mod prelude;
 
 @cfg(env("MARGARINE_COMPILATION_TARGET", "arm64-apple-darwin"))
 @hash("dc7547270e1415cae1fcc43a31e3f49c792987e42eac2f050bc3b61b495543a7")
