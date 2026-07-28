@@ -15,7 +15,7 @@ extern "https://cdn.daymare.net/margarine/0.1.0/arm64-apple-darwin/libmargarine_
 
 mod ffi {
     extern {
-        fn print_raw(val: Any)
+        fn print_raw(val: str)
         fn "margarinePanic" panic(msg: str): !
 
         fn int_to_str(value: int): str
@@ -77,12 +77,12 @@ impl Any {
 }
 
 
-fn print<T>(val: T) {
-    ffi::print_raw(Any::new(val));
+fn print<T: root::string::ToStr>(val: T) {
+    ffi::print_raw(val.to_str());
 }
 
 
-fn println<T>(val: T) {
+fn println<T: root::string::ToStr>(val: T) {
     print(val);
     print("\n");
 }
@@ -176,7 +176,16 @@ impl int {
 }
 
 
-impl float {
+impl root::string::ToStr for int {
+    fn to_str(self): str {
+        ffi::int_to_str(self)
+    }
+
+
+}
+
+
+impl root::string::ToStr for float {
     fn to_str(self): str {
         ffi::float_to_str(self)
     }
@@ -201,6 +210,26 @@ impl<T> Option<T> {
         match self {
             some => true,
             none => false,
+        }
+    }
+}
+
+
+impl<T: root::string::ToStr> root::string::ToStr for Option<T> {
+    fn to_str(self): str {
+        match self {
+            some: val => root::string::format("some({})", [val]),
+            none => "none",
+        }
+    }
+}
+
+
+impl<T: root::string::ToStr, A: root::string::ToStr> root::string::ToStr for Result<T, A> {
+    fn to_str(self): str {
+        match self {
+            ok: val => root::string::format("ok({})", [val]),
+            err: val => root::string::format("err({})", [val]),
         }
     }
 }

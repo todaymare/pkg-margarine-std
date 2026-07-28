@@ -6,6 +6,26 @@ mod ffi {
 
 
 impl<T> [T] {
+    fn concat(&self, other: [T]) {
+        self = $list_concat(self, other);
+    }
+
+    fn slice(self, idx: int): Option<([T], [T])> {
+        $list_slice(self, idx)
+    }
+
+    fn push(&self, value: T) {
+        self.concat([value]);
+    }
+
+
+    fn pop(&self): Option<T> {
+        var a, b = self.slice(self.len()-1)?;
+        self = a;
+        some(b[0])
+    }
+
+
     fn len(self): int { ffi::list_len(self) }
 
 //    fn iter(self): std::iter::Iter<T> {
@@ -23,11 +43,37 @@ impl<T> [T] {
 //    }
 
 
-    fn iter(self): ListIterator<T> {
-        ListIterator {
+    fn iter(self): root::iter::Iter<T> {
+        var val = Rc::new(ListIterator {
             idx: 0,
             list: self,
+        });
+
+
+        root::iter::Iter {
+            next: || {
+                var s = val.get();
+                var result = s.__next__()?;
+                val.set(s);
+                some(result)
+            }
         }
+    }
+}
+
+
+impl<T: root::string::ToStr> root::string::ToStr for [T] {
+    fn to_str(self): str {
+        var s = "[";
+
+        for i, value in self.iter().enumerate() {
+            if i != 0 { s = s.concat(", ") }
+
+            s = s.concat(value.to_str());
+
+        }
+
+        s.concat("]")
     }
 }
 
@@ -49,4 +95,3 @@ impl<T> ListIterator<T> {
         }
     }
 }
-

@@ -11,6 +11,16 @@ mod ffi {
 }
 
 
+trait ToStr {
+    fn to_str(self): str
+}
+
+
+impl ToStr for str {
+    fn to_str(self): str { self }
+}
+
+
 struct Lines {
     data: str,
 
@@ -39,7 +49,7 @@ impl str {
 
 
     fn slice(self, range: Range): str {
-        ffi::str_slice(self, range.min, range.max)
+        $str_slice(self, range.min, range.max)
     }
 
 
@@ -49,7 +59,7 @@ impl str {
 
 
     fn concat(self, b: str): str {
-        ffi::str_concat(self, b)
+        $str_concat(self, b)
     }
 
 
