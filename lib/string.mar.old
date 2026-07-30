@@ -6,7 +6,6 @@ mod ffi {
     fn str_split_at(s: str, idx: int): (str, str)
     fn str_len(s: str): int
     fn str_split_once(s: str, delimiter: str): Option<(str, str)>
-    fn str_slice(s: str, min: int, max: int): str
     fn str_nth(s: str, n: int): str
     fn str_lines_iter_next(s: Lines): Option<str>
     fn str_cmp(a: str, b: str): bool
@@ -78,8 +77,15 @@ impl str {
     }
 
 
+    fn slice_at(self, idx: int): Option<(str, str)> {
+        $str_slice(self, idx)
+    }
+
+
     fn slice(self, range: Range): str {
-        ffi::str_slice(self, range.min, range.max)
+        var _, rest = self.slice_at(range.min)!;
+        var result, _ = rest.slice_at(range.max - range.min)!;
+        result
     }
 
 

@@ -4,15 +4,20 @@ mod ffi {
         fn str_split_once(s: str, del: str): Option<(str, str)>
         fn str_len(s: str): int
         fn str_contains(s: str, v: str): bool
-        fn str_slice(s: str, min: int, max: int): str
         fn str_concat(a: str, b: str): str
         fn str_byte_at(s: str, idx: int): Option<int>
+        fn str_from_codepoint(value: int): Option<str>
     }
 }
 
 
 trait ToStr {
     fn to_str(self): str
+}
+
+
+trait FromStr {
+    fn from_str(value: str): Option<Self>
 }
 
 
@@ -48,9 +53,22 @@ impl str {
     }
 
 
-    fn slice(self, range: Range): str {
-        $str_slice(self, range.min, range.max)
+    fn slice_at(self, idx: int): Option<(str, str)> {
+        $str_slice(self, idx)
     }
+
+
+    fn slice(self, range: Range): str {
+        var _, rest = self.slice_at(range.min)!;
+        var result, _ = rest.slice_at(range.max - range.min)!;
+        result
+    }
+
+
+    fn parse<T: FromStr>(self): Option<T> {
+        T::from_str(self)
+    }
+
 
 
     fn byte_at(self, idx: int): Option<int> {
@@ -100,7 +118,7 @@ impl str {
         loop {
             var before, after =
                 match rest.split_once(pat) {
-                    some: pair => pair,
+                    some(pair) => pair,
                     none => return out.concat(rest),
                 };
 
@@ -115,7 +133,7 @@ impl str {
     fn replace_once(self, pat: str, value: str): str {
         var a, b = 
         match self.split_once(pat) {
-            some: idx => idx,
+            some(idx) => idx,
             none => return self,
         };
 
@@ -167,6 +185,17 @@ fn format(s: str, values: [str]): str {
 }
 
 
+fn from_codepoint(value: int): Option<str> {
+    ffi::str_from_codepoint(value)
+}
+
+
+fn from_ascii(value: int): Option<str> {
+    if value < 0 || value > 127 { return none() }
+    from_codepoint(value)
+}
+
+
 impl Eq for str {
     fn eq(self, oth: str): bool {
         if self.len() != oth.len() { return false }
@@ -203,7 +232,7 @@ impl Lines {
 
         var curr, next = 
         match self.data.split_once("\n") {
-            some: value => value,
+                some(value) => value,
             none => {
                 var value = self.data;
                 self.data = "";
@@ -242,4 +271,36 @@ fn test_replace_once() {
         "hello, {}, {}".replace_once("{}", "world") == "hello, world, {}",
         "replace once replaced multiple elements"
     );
+}
+
+
+@test
+fn test_from_codepoint() {
+    assert(from_codepoint(65)! == "A", "ASCII codepoint conversion failed");
+    assert(from_codepoint(0x1f600)! == "😀", "Unicode codepoint conversion failed");
+    match from_codepoint(0x110000) {
+        some(_) => assert(false, "invalid codepoint was accepted"),
+        none => (),
+    }
+}
+
+
+@test
+fn test_from_ascii() {
+    assert(from_ascii(65)! == "A", "ASCII conversion failed");
+    match from_ascii(128) {
+        some(_) => assert(false, "non-ASCII value was accepted"),
+        none => (),
+    }
+}
+
+
+@test
+fn test_parse_int() {
+    assert("123".parse::<int>()! == 123, "positive integer parsing failed");
+    assert("-42".parse::<int>()! == -42, "negative integer parsing failed");
+    match "12x".parse::<int>() {
+        some(_) => assert(false, "invalid integer was accepted"),
+        none => (),
+    }
 }

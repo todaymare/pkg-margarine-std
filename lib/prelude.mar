@@ -1,1 +1,1 @@
-use root::(assert, print, println);
+use root::(assert, eprint, eprintln, print, println);

@@ -62,6 +62,18 @@ impl<T> [T] {
 }
 
 
+impl [str] {
+    fn join(self, del: str): str {
+        var result = "";
+        for i, value in self.iter().enumerate() {
+            if i != 0 { result = result.concat(del) }
+            result = result.concat(value);
+        }
+        result
+    }
+}
+
+
 impl<T: root::string::ToStr> root::string::ToStr for [T] {
     fn to_str(self): str {
         var s = "[";
